@@ -143,4 +143,13 @@ dmypy.json
 .prof
 
 # End of https://www.toptal.com/developers/gitignore/api/python
-
+.vscode
+.history
+.vim
+dbpedia_csv
+dbpedia_csv.tar.gz
+biology
+chemistry
+computer_science
+physics
+other
