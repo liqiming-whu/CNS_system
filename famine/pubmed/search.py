@@ -1,8 +1,8 @@
+#!/usr/bin/env python3
 import os
 import re
-import xml.etree.ElementTree as ET
 from Bio import Entrez
-from pymed.article import PubMedArticle
+from medline import parse
 from topic import TopicPred
 
 Entrez.email = "liqiming1914658215@gmail.com"
@@ -40,92 +40,42 @@ def isChinese(first, last):
         return 'No'
 
 
-def replace_tags(text, reverse=False):
-    tags = ['<sup>', '</sup>', '<sub>', '</sub>', '<i>', '</i>']
-    re_tags = ['[^', '^]', '[_', '_]', '[/', '/]']
-    for tag, re_tag in zip(tags, re_tags):
-        if reverse:
-            text = text.replace(re_tag, tag)
-        else:
-            text = text.replace(tag, re_tag)
-
-    return text
-
-
-def fa_Chinese(f_pubmed):
-    tree = ET.parse(f_pubmed)
-    root = tree.getroot()
-    for article in root.iter("PubmedArticle"):
-        p = FirstAuthorArticle(xml_element=article)
-
-        if len(p.authors) == 0:
-            continue
-
-        if p.title.startswith("Author Correction:"):
-            continue
-
-        if len(p.title) == 0:
-            continue
-        p.title = replace_tags(p.title, reverse=True)
-
-        pubtype_set = set(p.get_pubtypes())
-
-        if len(pubtype_set.intersection(set(['Journal Article', 'Letter']))) == 0:
-            continue
-
-        if p.abstract is None:
-            continue
-        p.abstract = replace_tags(p.abstract, reverse=True)
-        authors = list()
-        au_email = list()
-
-        Chinese_num = 0
-        flag = 0
-        for author in p.authors:
-            flag += 1
-            first = author["firstname"]
-            last = author["lastname"]
-            if first is None or last is None:
-                break
-            name = first+" "+last
-            chinese = isChinese(first, last)
-
-            if chinese == 'Yes':
-                Chinese_num += 1
-            if flag == 3 and Chinese_num == 0:
-                break
-            affiliation = author["affiliation"]
-            search_email = re.findall(r"\S+\@\S+", affiliation)
-            if len(set(search_email)) > 1:
-                affiliation = affiliation.replace(" ".join(search_email), "")
-
-                au_email.append(name)
+def Chines_authors(au):
+    authors = list()
+    au_email = list()
+    Chinese_num = 0
+    flag = 0
+    for author in au:
+        flag += 1
+        first = author["firstname"]
+        last = author["lastname"]
+        name = author['name']
+        chinese = isChinese(first, last)
+        if chinese == 'Yes':
+            Chinese_num += 1
+        if flag == 3 and Chinese_num == 0:
+            break
+        affiliation = author["affiliation"]
+        search_email = re.findall(r"\S+\@\S+", affiliation)
+        if len(set(search_email)) > 1:
+            affiliation = affiliation.replace(" ".join(search_email), "")
+            au_email.append(name)
+            try:
                 email = search_email[au_email.index(name)]
-            elif len(set(search_email)) == 1:
-                email = search_email[0]
-                affiliation = affiliation.replace(email, "")
-                affiliation = affiliation.replace(" Electronic address:", "")
-            else:
+            except IndexError:
                 email = None
-            if email is not None and email[-1] == '.':
-                email = email[:-1]
+        elif len(set(search_email)) == 1:
+            email = search_email[0]
+            affiliation = affiliation.replace(email, "")
+            affiliation = affiliation.replace(" Electronic address:", "")
+            affiliation = affiliation.rstrip()
+        else:
+            email = None
+        if email is not None and email[-1] == '.':
+            email = email[:-1]
+        authors.append([name, first, last, chinese, affiliation, email])
 
-            print(name+'\n'+str(email)+'\n'+affiliation+'\n')
-
-            authors.append([name, first, last, chinese, affiliation, email])
-
-        if Chinese_num > 0:
-            topic = get_topic(p.journal, p.abstract)
-            articles = [p.pubmed_id[:8], p.publication_date, p.title, p.abstract, p.doi, topic]
-            yield authors, articles
-
-
-class FirstAuthorArticle(PubMedArticle):
-    def get_pubtypes(self):
-        path = ".//PublicationType"
-        return [
-            pubtype.text for pubtype in self.xml.findall(path) if pubtype is not None
-        ]
+    return authors
 
 
 class Pubmed:
@@ -147,6 +97,24 @@ class Pubmed:
 
     def detail(self):
         idlist = self.search()
-        handle = Entrez.efetch(db="pubmed", id=idlist, rettype="medline", retmode="xml")
+        print("Search '{}', get {} records.".format(self.query, len(idlist)))
+        handle = Entrez.efetch(db="pubmed", id=idlist, rettype="medline", retmode="text")
+        records = parse(handle)
 
-        return fa_Chinese(str(handle.read()))
+        for record in records:
+            authors = Chines_authors(record.authors)
+            if not authors:
+                continue
+            topic = get_topic(record.journal, record.abstract)
+
+            article = [record.pubmed_id, record.publication_date,
+                       record.title, record.abstract,
+                       record.doi, topic]
+            yield authors, article
+
+
+if __name__ == "__main__":
+    journal_list = ('Nature', 'Cell', 'Science')
+    for journal in journal_list:
+        for _, article in Pubmed(journal, '2019/01/01', '2020/11/20').detail():
+            print(article[0])
