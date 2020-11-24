@@ -122,7 +122,7 @@ def parse(handle):
                 record[key].append(line[6:])
             if (key == 'FAU' or key == 'LA') and history[-1] == 'AU':
                 if 'AD' in record:
-                    record['AD'].append(record['AD'][-1])
+                    record['AD'].append('NA')
                 else:
                     record['AD'] = ['NA']
             if key in ('PMID', 'FAU', 'AU', 'AD', 'LA'):
