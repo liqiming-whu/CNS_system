@@ -78,9 +78,9 @@ DATABASES = {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'faminedb',
-        'USER': 'root',
-        'PASSWORD': '123456',
+        'NAME': 'famine',
+        'USER': 'liqiming',
+        'PASSWORD': 'venus',
         'HOST': '',
         'PORT': '3306',
     }

@@ -58,7 +58,7 @@ class Record(dict):
             return False
         if not len(self['AU']) == len(self['AD']):
             return False
-        return True
+        return True                                                                                                                                                                       
 
 
 def parse(handle):
