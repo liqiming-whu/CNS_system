@@ -3,8 +3,8 @@ from django.db import models
 
 class Author(models.Model):
     name = models.CharField(max_length=50, db_index=True)
-    first = models.CharField(max_length=20)
-    last = models.CharField(max_length=20)
+    first = models.CharField(max_length=30)
+    last = models.CharField(max_length=30)
     chinese = models.CharField(max_length=3, db_index=True)
     affiliation = models.TextField(null=True)
     email = models.EmailField(null=True)

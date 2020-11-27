@@ -2,8 +2,8 @@
 import os
 import re
 from Bio import Entrez
-from medline import parse
-from topic import TopicPred
+from .medline import parse
+from .topic import TopicPred
 
 Entrez.email = "liqiming1914658215@gmail.com"
 Entrez.api_key = "c80ce212c7179f0bbfbd88495a91dd356708"

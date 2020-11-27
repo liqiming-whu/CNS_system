@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import re
+import time
 
 
 class Paper:
     def __init__(self, record):
+        self.record = record
         self.pubmed_id = record['PMID']
         self.title = record['TI']
         self.abstract = record['AB']
@@ -37,9 +39,15 @@ class Paper:
 
     @property
     def publication_date(self):
-        date = re.compile(". ({}[^;]*)[;.]".format(self.dp))
+        date = re.compile("({}[^;.]*)[;.]".format(self.dp))
+        date = date.findall(self.so)[-1]
+        if len(date.split()) == 3:
+            date = time.strptime(date, '%Y %b %d')
+            date = time.strftime("%Y-%m-%d", date)
+        else:
+            date = self.record['EDAT'].split()[0].replace("/", "-")
 
-        return date.findall(self.so)[0]
+        return date
 
 
 class Record(dict):
@@ -58,7 +66,7 @@ class Record(dict):
             return False
         if not len(self['AU']) == len(self['AD']):
             return False
-        return True                                                                                                                                                                       
+        return True
 
 
 def parse(handle):
